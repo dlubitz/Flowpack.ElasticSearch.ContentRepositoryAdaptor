@@ -3,11 +3,10 @@ declare(strict_types=1);
 
 namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Unit\Service;
 
-use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Indexer\NodeIndexer;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Service\DimensionsService;
 use Neos\Flow\Tests\UnitTestCase;
 
-class DimensionServiceTest extends UnitTestCase
+class NodeIndexerTest extends UnitTestCase
 {
     /**
      * @var DimensionsService
@@ -88,7 +87,7 @@ class DimensionServiceTest extends UnitTestCase
      * @param array $nodeDimensions
      * @param array $expected
      */
-    public function reduceDimensionCombinationstoSelfAndFallback(array $dimensionCombinations, array $nodeDimensions, array $expected): void
+    public function testReduceDimensionCombinationstoSelfAndFallback(array $dimensionCombinations, array $nodeDimensions, array $expected): void
     {
         self::assertEquals($expected, $this->dimensionService->_call('reduceDimensionCombinationstoSelfAndFallback', $dimensionCombinations, $nodeDimensions));
     }

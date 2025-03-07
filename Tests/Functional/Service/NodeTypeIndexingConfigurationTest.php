@@ -14,7 +14,10 @@ namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Servi
  */
 
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Service\NodeTypeIndexingConfiguration;
-use Neos\ContentRepository\Domain\Service\NodeTypeManager;
+use Neos\ContentRepository\Core\NodeType\NodeTypeManager;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
+use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
+use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Tests\FunctionalTestCase;
 
 class NodeTypeIndexingConfigurationTest extends FunctionalTestCase
@@ -30,10 +33,14 @@ class NodeTypeIndexingConfigurationTest extends FunctionalTestCase
      */
     protected $nodeTypeIndexingConfiguration;
 
+    #[Flow\Inject]
+    protected ContentRepositoryRegistry $contentRepositoryRegistry;
+
     public function setUp(): void
     {
         parent::setUp();
-        $this->nodeTypeManager = $this->objectManager->get(NodeTypeManager::class);
+        $contentRepository = $this->contentRepositoryRegistry->get(ContentRepositoryId::fromString('default'));
+        $this->nodeTypeManager = $contentRepository->getNodeTypeManager();
         $this->nodeTypeIndexingConfiguration = $this->objectManager->get(NodeTypeIndexingConfiguration::class);
     }
 
@@ -58,7 +65,6 @@ class NodeTypeIndexingConfigurationTest extends FunctionalTestCase
      * @param string $nodeTypeName
      * @param bool $expected
      * @throws \Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception
-     * @throws \Neos\ContentRepository\Exception\NodeTypeNotFoundException
      */
     public function isIndexable(string $nodeTypeName, bool $expected): void
     {
@@ -75,7 +81,7 @@ class NodeTypeIndexingConfigurationTest extends FunctionalTestCase
      */
     public function getIndexableConfiguration(string $nodeTypeName, bool $expected): void
     {
-        $indexableConfiguration = $this->nodeTypeIndexingConfiguration->getIndexableConfiguration();
+        $indexableConfiguration = $this->nodeTypeIndexingConfiguration->getIndexableConfiguration(ContentRepositoryId::fromString('default'));
         self::assertEquals($indexableConfiguration[$nodeTypeName], $expected);
     }
 }

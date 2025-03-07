@@ -16,7 +16,7 @@ namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Unit\Service;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Service\IndexNameService;
 use Neos\Flow\Tests\UnitTestCase;
 
-class IndexNameServiceTest extends UnitTestCase
+class DimensionServiceTest extends UnitTestCase
 {
     public function indexNameDataProvider(): array
     {
@@ -42,7 +42,7 @@ class IndexNameServiceTest extends UnitTestCase
      * @param string $postfix
      * @param array $expected
      */
-    public function filterIndexNamesByPostfix(array $indexNames, string $postfix, array $expected): void
+    public function testFilterIndexNamesByPostfix(array $indexNames, string $postfix, array $expected): void
     {
         self::assertEquals($expected, IndexNameService::filterIndexNamesByPostfix($indexNames, $postfix));
     }

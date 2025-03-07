@@ -17,7 +17,6 @@ use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Driver\NodeTypeMappingBuilde
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Driver\QueryInterface;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Driver\Version6\Mapping\NodeTypeMappingBuilder;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Driver\Version6\Query\FilteredQuery;
-use Flowpack\ElasticSearch\ContentRepositoryAdaptor\ElasticSearchClient;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception\ConfigurationException;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Indexer\NodeIndexer;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Service\DimensionsService;
@@ -27,9 +26,11 @@ use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\Cont
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\ContentRepositorySetupTrait;
 use Flowpack\ElasticSearch\Domain\Model\Mapping;
 use Flowpack\ElasticSearch\Exception;
-use Flowpack\ElasticSearch\Transfer\Exception\ApiException;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
-use Neos\Flow\Tests\FunctionalTestCase;
+use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
+use Neos\ContentRepository\Core\Feature\NodeModification\Command\SetNodeProperties;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
+use Neos\Flow\Annotations as Flow;
 use Neos\Utility\Arrays;
 
 class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
@@ -51,6 +52,9 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
      */
     protected $nodeTypeMappingBuilder;
 
+    #[Flow\Inject]
+    protected ContentRepositoryRegistry $contentRepositoryRegistry;
+
     public function setUp(): void
     {
         parent::setUp();
@@ -65,7 +69,7 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
     public function getIndexWithoutDimensionConfigured(): void
     {
         $this->nodeIndexer->setIndexNamePostfix('');
-        $this->nodeIndexer->setDimensions([]);
+        $this->nodeIndexer->setDimensions(DimensionSpacePoint::createWithoutDimensions());
         $index = $this->nodeIndexer->getIndex();
         static::assertEquals(self::TESTING_INDEX_PREFIX . '-default', $index->getName());
     }
@@ -79,7 +83,7 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
      */
     public function getIndexForDimensionConfiguration(): void
     {
-        $dimensionValues = ['language' => ['de']];
+        $dimensionValues = DimensionSpacePoint::fromArray(['language' => 'de']);
         $this->nodeIndexer->setDimensions($dimensionValues);
         $index = $this->nodeIndexer->getIndex();
         $dimesionHash = $this->dimensionService->hash($dimensionValues);
@@ -92,7 +96,7 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
      */
     public function updateIndexAlias(): void
     {
-        $dimensionValues = ['language' => ['de']];
+        $dimensionValues = DimensionSpacePoint::fromArray(['language' => 'de']);
         $this->nodeIndexer->setDimensions($dimensionValues);
         $this->nodeIndexer->setIndexNamePostfix((string)time());
         $this->nodeIndexer->getIndex()->create();
@@ -125,10 +129,16 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
         $testNode = $this->setupCrAndIndexTestNode();
         self::assertTrue($this->nodeExistsInIndex($testNode), 'Node was not successfully indexed.');
 
+        SetNodeProperties::create($workspaceName: 'live', $nodeIdentifier: $testNode->aggregateId->value, $properties: ['title' => 'changed'])
+
         $testNode2 = $this->siteNode->getNode('test-node-2');
+        // TODO 9.0 migration: !! Node::setProperty() is not supported by the new CR. Use the "SetNodeProperties" command to change property values.
+
 
         // move this node (test-node-1) into test-node-2
         $testNode->setProperty('title', 'changed');
+        // TODO 9.0 migration: !! Node::moveInto() is not supported by the new CR. Use the "MoveNodeAggregate" command to move a node.
+
         $testNode->moveInto($testNode2);
 
         // re-index
@@ -142,18 +152,21 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
         // check the node path in es after indexing
         $pathInEs = $this->getNeosPathOfNodeInIndex($testNode);
         self::assertNotNull($pathInEs, 'Node does not exist after indexing');
-        self::assertEquals($pathInEs, $testNode->getPath(), 'Wrong node path in elasticsearch after indexing');
+        $subgraph = $this->contentRepositoryRegistry->subgraphForNode($testNode);
+        // TODO 9.0 migration: Try to remove the (string) cast and make your code more type-safe.
+
+        self::assertEquals($pathInEs, (string)$subgraph->retrieveNodePath($testNode->aggregateId), 'Wrong node path in elasticsearch after indexing');
     }
 
     /**
      * Fetch the node path (stored in elasticsearch) of the given node
      */
-    private function getNeosPathOfNodeInIndex(NodeInterface $node): ?string
+    private function getNeosPathOfNodeInIndex(Node $node): ?string
     {
         $this->searchClient->setContextNode($this->siteNode);
         /** @var FilteredQuery $query */
         $query = $this->objectManager->get(QueryInterface::class);
-        $query->queryFilter('term', ['neos_node_identifier' => $node->getIdentifier()]);
+        $query->queryFilter('term', ['neos_node_identifier' => $node->aggregateId->value]);
 
         $result = $this->nodeIndexer->getIndex()->request('GET', '/_search', [], $query->toArray())->getTreatedContent();
 
@@ -167,7 +180,7 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
     }
 
     /**
-     * @param NodeInterface $testNode
+     * @param Node $testNode
      * @return bool
      * @throws ConfigurationException
      * @throws Exception
@@ -175,32 +188,39 @@ class NodeIndexerTest extends BaseElasticsearchContentRepositoryAdapterTest
      * @throws \Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception\QueryBuildingException
      * @throws \Neos\Flow\Http\Exception
      */
-    private function nodeExistsInIndex(NodeInterface $testNode): bool
+    private function nodeExistsInIndex(Node $testNode): bool
     {
         $this->searchClient->setContextNode($this->siteNode);
         /** @var FilteredQuery $query */
         $query = $this->objectManager->get(QueryInterface::class);
-        $query->queryFilter('term', ['neos_node_identifier' => $testNode->getIdentifier()]);
+        // TODO 9.0 migration: Check if you could change your code to work with the NodeAggregateId value object instead.
+
+        $query->queryFilter('term', ['neos_node_identifier' => $testNode->aggregateId->value]);
 
         $result = $this->nodeIndexer->getIndex()->request('GET', '/_search', [], $query->toArray())->getTreatedContent();
         return count(Arrays::getValueByPath($result, 'hits.hits')) === 1;
     }
 
     /**
-     * @return NodeInterface
+     * @return Node
      * @throws ConfigurationException
      * @throws Exception
      * @throws \Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception
      * @throws \Neos\Flow\Http\Exception
      */
-    protected function setupCrAndIndexTestNode(): NodeInterface
+    protected function setupCrAndIndexTestNode(): Node
     {
         $this->setupContentRepository();
         $this->createNodesForNodeSearchTest();
-        /** @var NodeInterface $testNode */
-        $testNode = current($this->siteNode->getChildNodes('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Document', 1));
+        $subgraph = $this->contentRepositoryRegistry->subgraphForNode($this->siteNode);
+        // TODO 9.0 migration: Try to remove the iterator_to_array($nodes) call.
 
-        $this->nodeIndexer->setDimensions($testNode->getDimensions());
+        /** @var Node $testNode */
+        $testNode = current(iterator_to_array($subgraph->findChildNodes($this->siteNode->aggregateId, \Neos\ContentRepository\Core\Projection\ContentGraph\Filter\FindChildNodesFilter::create(nodeTypeConstraints: 'Flowpack.ElasticSearch.ContentRepositoryAdaptor:Document', pagination: ['limit' => 1, 'offset' => null]))));
+        // TODO 9.0 migration: Try to remove the toLegacyDimensionArray() call and make your codebase more typesafe.
+
+
+        $this->nodeIndexer->setDimensions($testNode->originDimensionSpacePoint->toLegacyDimensionArray());
         $this->nodeIndexer->getIndex()->create();
 
         $nodeTypeMappingCollection = $this->nodeTypeMappingBuilder->buildMappingInformation($this->nodeIndexer->getIndex());

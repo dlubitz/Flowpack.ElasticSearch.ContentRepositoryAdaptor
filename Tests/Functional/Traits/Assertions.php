@@ -15,7 +15,7 @@ namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Trait
 
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Eel\ElasticSearchQueryResult;
 use Flowpack\ElasticSearch\Transfer\Exception\ApiException;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 
 trait Assertions
 {
@@ -40,8 +40,8 @@ trait Assertions
 
     private static function extractNodeNames(ElasticSearchQueryResult $result): array
     {
-        return array_map(static function (NodeInterface $node) {
-            return $node->getName();
+        return array_map(static function (Node $node) {
+            return $node->nodeName;
         }, $result->toArray());
     }
 

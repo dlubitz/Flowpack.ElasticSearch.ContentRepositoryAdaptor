@@ -17,24 +17,24 @@ use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\BaseElastic
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\Assertions;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\ContentRepositoryMultiDimensionNodeCreationTrait;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\ContentRepositorySetupTrait;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 
 class ElasticSearchMultiDimensionQueryTest extends BaseElasticsearchContentRepositoryAdapterTest
 {
     use ContentRepositorySetupTrait, ContentRepositoryMultiDimensionNodeCreationTrait, Assertions;
 
     /**
-     * @var NodeInterface
+     * @var Node
      */
     protected $siteNodeDefault;
 
     /**
-     * @var NodeInterface
+     * @var Node
      */
     protected $siteNodeDe;
 
     /**
-     * @var NodeInterface
+     * @var Node
      */
     protected $siteNodeDk;
 

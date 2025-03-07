@@ -13,13 +13,7 @@ namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Trait
  * source code.
  */
 
-use Neos\ContentRepository\Domain\Model\NodeInterface;
-use Neos\ContentRepository\Domain\Model\Workspace;
-use Neos\ContentRepository\Domain\Repository\NodeDataRepository;
-use Neos\ContentRepository\Domain\Repository\WorkspaceRepository;
-use Neos\ContentRepository\Domain\Service\Context;
-use Neos\ContentRepository\Domain\Service\ContextFactoryInterface;
-use Neos\ContentRepository\Domain\Service\NodeTypeManager;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 
 trait ContentRepositorySetupTrait
 {
@@ -29,12 +23,12 @@ trait ContentRepositorySetupTrait
     protected $workspaceRepository;
 
     /**
-     * @var Context
+     * @var \Neos\Rector\ContentRepository90\Legacy\LegacyContextStub
      */
     protected $context;
 
     /**
-     * @var NodeInterface
+     * @var Node
      */
     protected $siteNode;
 
@@ -44,7 +38,7 @@ trait ContentRepositorySetupTrait
     protected $contextFactory;
 
     /**
-     * @var NodeTypeManager
+     * @var \Neos\ContentRepository\Core\NodeType\NodeTypeManager
      */
     protected $nodeTypeManager;
 
@@ -56,10 +50,10 @@ trait ContentRepositorySetupTrait
     private function setupContentRepository():void
     {
         $this->workspaceRepository = $this->objectManager->get(WorkspaceRepository::class);
-        $liveWorkspace = new Workspace('live');
+        $liveWorkspace = new \Neos\ContentRepository\Core\SharedModel\Workspace\Workspace('live');
         $this->workspaceRepository->add($liveWorkspace);
 
-        $this->nodeTypeManager = $this->objectManager->get(NodeTypeManager::class);
+        $this->nodeTypeManager = $this->objectManager->get(\Neos\ContentRepository\Core\NodeType\NodeTypeManager::class);
         $this->contextFactory = $this->objectManager->get(ContextFactoryInterface::class);
         $this->nodeDataRepository = $this->objectManager->get(NodeDataRepository::class);
     }

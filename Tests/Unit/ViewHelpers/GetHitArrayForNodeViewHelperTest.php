@@ -16,7 +16,7 @@ namespace Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Unit\Eel;
 
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Eel\ElasticSearchQueryResult;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\ViewHelpers\GetHitArrayForNodeViewHelper;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 use Neos\Flow\Tests\UnitTestCase;
 
 /**
@@ -30,7 +30,7 @@ class GetHitArrayForNodeViewHelperTest extends UnitTestCase
     protected $viewHelper;
 
     /**
-     * @var NodeInterface|\PHPUnit_Framework_MockObject_MockObject $node
+     * @var Node|\PHPUnit_Framework_MockObject_MockObject $node
      */
     protected $mockNode;
 
@@ -42,7 +42,7 @@ class GetHitArrayForNodeViewHelperTest extends UnitTestCase
     public function setUp(): void
     {
         $this->viewHelper = new GetHitArrayForNodeViewHelper();
-        $this->mockNode = $this->createMock(NodeInterface::class);
+        $this->mockNode = $this->createMock(Node::class);
         $this->mockQueryResult = $this->getMockBuilder(ElasticSearchQueryResult::class)->setMethods(['searchHitForNode'])->disableOriginalConstructor()->getMock();
     }
 

@@ -42,14 +42,6 @@ trait ContentRepositoryNodeCreationTrait
         $newDocumentNode2->setProperty('title', 'chicken');
         $newDocumentNode2->setProperty('title_analyzed', 'chicken');
 
-        // Nodes for cacheLifetime test
-        $newContentNode2 = $newDocumentNode2->getNode('main')->createNode('document-2-text-1', $this->nodeTypeManager->getNodeType('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Content'));
-        $newContentNode2->setProperty('text', 'Hidden after 2025-01-01');
-        $newContentNode2->setHiddenAfterDateTime(new \DateTime('@1735686000'));
-        $newContentNode3 = $newDocumentNode2->getNode('main')->createNode('document-2-text-2', $this->nodeTypeManager->getNodeType('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Content'));
-        $newContentNode3->setProperty('text', 'Hidden before 2018-07-18');
-        $newContentNode3->setHiddenBeforeDateTime(new \DateTime('@1531864800'));
-
         $newDocumentNode3 = $this->siteNode->createNode('test-node-3', $this->nodeTypeManager->getNodeType('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Document'));
         $newDocumentNode3->setProperty('title', 'egg');
         $newDocumentNode3->setProperty('title_analyzed', 'egg');

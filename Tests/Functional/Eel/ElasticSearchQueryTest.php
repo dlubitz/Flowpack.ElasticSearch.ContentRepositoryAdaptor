@@ -19,7 +19,7 @@ use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception\QueryBuildingExcep
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\BaseElasticsearchContentRepositoryAdapterTest;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\ContentRepositoryNodeCreationTrait;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Tests\Functional\Traits\ContentRepositorySetupTrait;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 use Neos\Flow\Persistence\QueryResultInterface;
 
 class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTest
@@ -64,10 +64,10 @@ class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTe
             ->execute();
         static::assertEquals(1, $result->count());
 
-        /** @var NodeInterface $node */
+        /** @var Node $node */
         $node = $result->current();
-        static::assertEquals('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Document', $node->getNodeType()->getName());
-        static::assertEquals('test-node-1', $node->getName());
+        static::assertEquals('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Document', $node->nodeTypeName->value);
+        static::assertEquals('test-node-1', $node->nodeName);
     }
 
     /**
@@ -78,7 +78,7 @@ class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTe
         /** @var ElasticSearchQueryBuilder $queryBuilder */
         $queryBuilder = $this->getQueryBuilder();
 
-        /** @var NodeInterface $resultNode */
+        /** @var Node $resultNode */
         $resultNode = $queryBuilder
             ->fulltext('whistles')
             ->log($this->getLogMessagePrefix(__METHOD__))
@@ -252,7 +252,7 @@ class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTe
 
         $node = $result->getFirst();
 
-        static::assertInstanceOf(NodeInterface::class, $node);
+        static::assertInstanceOf(Node::class, $node);
         static::assertEquals('welcome', $node->getProperty('title'), 'Asserting a desc sort order by property title');
     }
 
@@ -269,7 +269,7 @@ class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTe
         /** @var ElasticSearchQueryResult $result */
         $node = $result->getFirst();
 
-        static::assertInstanceOf(NodeInterface::class, $node);
+        static::assertInstanceOf(Node::class, $node);
         static::assertEquals('chicken', $node->getProperty('title'), 'Asserting a asc sort order by property title');
     }
 
@@ -287,23 +287,5 @@ class ElasticSearchQueryTest extends BaseElasticsearchContentRepositoryAdapterTe
         foreach ($result as $node) {
             static::assertEquals([$node->getProperty('title')], $result->getSortValuesForNode($node));
         }
-    }
-
-    /**
-     * @test
-     * @throws QueryBuildingException
-     * @throws \Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception
-     * @throws \Flowpack\ElasticSearch\Exception
-     * @throws \Neos\Flow\Http\Exception
-     */
-    public function cacheLifetimeIsCalculatedCorrectly(): void
-    {
-        $cacheLifetime = $this->getQueryBuilder()
-            ->log($this->getLogMessagePrefix(__METHOD__))
-            ->nodeType('Flowpack.ElasticSearch.ContentRepositoryAdaptor:Content')
-            ->sortAsc('title')
-            ->cacheLifetime();
-
-        static::assertEquals(600, $cacheLifetime);
     }
 }

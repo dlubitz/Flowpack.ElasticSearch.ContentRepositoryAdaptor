@@ -17,10 +17,21 @@ use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Driver\Version6\Query\Filter
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Eel\ElasticSearchQueryBuilder;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\ElasticSearchClient;
 use Flowpack\ElasticSearch\ContentRepositoryAdaptor\Exception\QueryBuildingException;
+use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
+use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
+use Neos\ContentRepository\Core\NodeType\NodeTypeName;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepository\Core\Projection\ContentGraph\NodeTags;
+use Neos\ContentRepository\Core\Projection\ContentGraph\PropertyCollection;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Timestamps;
+use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateClassification;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
+use Neos\ContentRepository\Core\SharedModel\Workspace\Workspace;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\Flow\Tests\UnitTestCase;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
-use Neos\ContentRepository\Domain\Model\Workspace;
-use Neos\ContentRepository\Domain\Service\Context;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
@@ -35,11 +46,11 @@ class ElasticSearchQueryBuilderTest extends UnitTestCase
 
     public function setUp(): void
     {
-        /** @var NodeInterface|MockObject $node */
-        $node = $this->createMock(NodeInterface::class);
+        /** @var Node|MockObject $node */
+        $node = $this->createMock(Node::class);
         $node->method('getPath')->willReturn('/foo/bar');
 
-        $mockContext = $this->getMockBuilder(Context::class)->disableOriginalConstructor()->getMock();
+        $mockContext = $this->getMockBuilder(\Neos\Rector\ContentRepository90\Legacy\LegacyContextStub::class)->disableOriginalConstructor()->getMock();
         $mockContext->method('getDimensions')->willReturn([]);
         $node->method('getContext')->willReturn($mockContext);
 
@@ -67,20 +78,6 @@ class ElasticSearchQueryBuilderTest extends UnitTestCase
                                 [
                                     'term' => ['neos_hidden' => true]
                                 ],
-                                [
-                                    'range' => [
-                                        'neos_hidden_before_datetime' => [
-                                            'gt' => 'now'
-                                        ]
-                                    ]
-                                ],
-                                [
-                                    'range' => [
-                                        'neos_hidden_after_datetime' => [
-                                            'lt' => 'now'
-                                        ]
-                                    ]
-                                ]
                             ]
                         ]
                     ]
@@ -144,22 +141,6 @@ class ElasticSearchQueryBuilderTest extends UnitTestCase
                                 [
                                     'term' => ['neos_hidden' => true]
                                 ],
-                                // if now < hiddenBeforeDateTime: HIDE
-                                // -> hiddenBeforeDateTime > now
-                                [
-                                    'range' => [
-                                        'neos_hidden_before_datetime' => [
-                                            'gt' => 'now'
-                                        ]
-                                    ]
-                                ],
-                                [
-                                    'range' => [
-                                        'neos_hidden_after_datetime' => [
-                                            'lt' => 'now'
-                                        ]
-                                    ]
-                                ]
                             ]
                         ]
                     ]
